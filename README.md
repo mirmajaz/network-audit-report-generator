@@ -42,7 +42,7 @@ Edit
 ```bash
 pip install -r requirements.txt
 Step 2: Paste Input File
-Put your file into /data/Rawdatafortg.xlsx.
+Put your file into /data/NameofInputFileOnlyWithDescription.xlsx.
 
 Step 3: Run Script
 bash
