@@ -22,33 +22,34 @@ def map_severity(full_entry: str) -> str:
         return "Low"
 
 
-def map_control_standard(text):
-    text = text.lower()
-    if any(k in text for k in ["password", "authentication", "login", "mfa"]):
-        return "Identification and Authentication"
-    elif any(k in text for k in ["bgp", "route", "traffic", "packet", "encryption"]):
-        return "System and Communications Protection"
-    elif any(k in text for k in ["service", "interface", "auxiliary", "management"]):
-        return "Configuration Management"
-    else:
-        return "Access Control"
-
 def smarten_recommendation_enhanced(raw_solution: str) -> str:
-    # Clean spacing
     raw_solution = re.sub(r'\s+', ' ', raw_solution).strip()
+
+    # Remove misleading trailing phrases if no example follows
+    trailing_phrases = [
+        r'as shown in the example below\.?',
+        r'see the configuration below\.?',
+        r'as demonstrated below\.?',
+        r'in the example below\.?',
+        r'as detailed below\.?',
+        r'below is an example\.?'
+    ]
+    
+    for phrase in trailing_phrases:
+        if re.search(phrase, raw_solution, re.IGNORECASE):
+            raw_solution = re.sub(phrase, '', raw_solution, flags=re.IGNORECASE).strip()
 
     # If it already starts with "It is recommended", don't touch it — just return cleaned version
     if raw_solution.lower().startswith("it is recommended"):
         return raw_solution
 
-    # If the sentence ends mid-thought (like "as shown below"), still keep it — do not crop
-    # Use raw sentence if it begins with configure/set/delete/etc.
+    # If it starts with action words
     match = re.search(r'(Configure|Set|Delete|Disable|Deny|Enforce|Reject)[^.]+\.', raw_solution, re.IGNORECASE)
     if match:
         full_sentence = match.group(0).strip().rstrip('.')
         return f"It is recommended to {full_sentence[0].lower() + full_sentence[1:]}."
 
-    # Fallback: use full cleaned original
+    # Fallback to full cleaned version
     clean_fallback = raw_solution.strip().rstrip('.')
     return f"It is recommended to {clean_fallback[0].lower() + clean_fallback[1:]}."
 
@@ -57,7 +58,7 @@ def parse_entry(description, index):
     entry = description.replace('\n', ' ').strip()
     solution_split = entry.split("Solution:")
     before_solution = solution_split[0]
-    after_solution = solution_split[1].split("See Also:")[0].strip() if len(solution_split) > 1 else ""
+    after_solution = solution_split[1].strip() if len(solution_split) > 1 else ""
 
     # Observation
     obs_match = re.search(r'- (.*?)"?: \[FAILED\]', before_solution)
